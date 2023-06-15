@@ -1,0 +1,30 @@
+**** [부산은행] ****
+
+1. log 디렉토리 만들기
+$TRAN_SVR_HOME/scripts/dir_list.sh
+-> echo $TRAN_LOG_HOME/proc/merge_backup_file 추가 후 생성해준다.
+
+2. 백업 디렉토리 만들기
+
+3. svr.cfg 파일 수정하기
+[DB_LOADER_BACKUP]
+
+# 파일 최대치 (동적할당 때문에 개수 제한. 1500TPS 기준으로 설정)
+FILE_MAX_COUNT = 400000
+
+# Daily backup 
+# 하루치로 백업할 file 설정
+BACKUP_LIST_CNT    = 3 // 총 개수
+BACKUP_LIST_ONEDAY = LOG INFOLOG TRX_SUMM
+
+4. sep.c 
+parsing_I_log 에서 sscanf 처리 수정하기
+#if 0 => #if 1 로 수정
+if (n != 9) ----> if (n != 12) 로 수정
+
+5. LOG / INFO_LOG / TRX_SUMM 파일들 내용 확인.
+-> 날짜 필드 맞는 지 확인.
+
+6. unlink 막고 테스트..
+
+

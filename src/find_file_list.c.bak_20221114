@@ -1,0 +1,127 @@
+#include "merge_backup_file.h"
+#include "find_file_list.h"
+
+#include <dirent.h> 
+
+#define BACKUP_CNT 3
+
+#define NOT_MATCH    0
+
+extern long file_cnt;
+
+char* backup_list[BACKUP_CNT] = {"tran_infolog", "tran_log", "tran_statis"};
+DIR_INFO backup_dir[BACKUP_CNT];
+
+int find_file_list(char *path, FILE_INFO* f_list) 
+{
+	DIR *d;
+	struct dirent *dir;
+	int backup_num = 0;
+	char tran_log_tmp[13] = "/tran_log/01";
+	char tran_infolog_tmp[17] = "/tran_infolog/01";
+	char tran_statis_tmp[22] = "/tran_statis/trx_summ";
+	char f_tmp[FILE_NAME_LEN];
+
+	char tran_log[64] = {0x00,};
+	char tran_infolog[64] = {0x00,};
+	char tran_statis[64] = {0x00,};
+
+	long i = 0;
+	int bi = 0;
+
+	d = opendir(path);
+	if (d)
+	{
+		/* malloc (backup_directory)
+			file_cnt -> svr.cfg 파일 */
+		f_list = (FILE_INFO*)malloc(sizeof(FILE_INFO)*file_cnt);
+		memset(f_list, 0x00, sizeof(FILE_INFO)*file_cnt);
+
+		while ((dir = readdir(d)) != NULL) 
+		{
+			if (!memcmp(dir->d_name, ".", 1)) continue;	
+			else
+			{
+				//printf("%s\n", dir->d_name);
+				//memcpy(dir->d_name, files->name, strlen(dir->d_name));
+			
+				backup_num = check_backup_list(dir->d_name);
+				if (backup_num == TRAN_LOG)
+				{
+					sprintf(tran_log, "%s%s", path, tran_log_tmp);	
+
+					memcpy(backup_dir[bi].name, tran_log, FILE_NAME_LEN);
+					printf("backup_dir : %s\n", backup_dir[bi].name);
+					bi++;
+
+				}
+				else if (backup_num == TRAN_INFOLOG)
+				{
+					sprintf(tran_infolog, "%s%s", path, tran_infolog_tmp);	
+	
+/*	
+					memcpy(f_list[i].name, tran_infolog, FILE_NAME_LEN);
+					printf("f_list->name : %s\n", f_list[i].name);
+					i++;
+*/
+					memcpy(backup_dir[bi].name, tran_infolog, FILE_NAME_LEN);
+					printf("backup_dir : %s\n", backup_dir[bi].name);
+					bi++;
+				}
+				else if (backup_num == TRAN_STATIS)
+				{
+					sprintf(tran_statis, "%s%s", path, tran_statis_tmp);	
+
+					memcpy(backup_dir[bi].name, tran_statis, FILE_NAME_LEN);
+					printf("backup_dir : %s\n", backup_dir[bi].name);
+					bi++;
+				}
+				else continue;
+			}
+		}
+		closedir(d);
+	}
+	else
+	{
+		printf("No such directory\n");
+		return NO_SUCH_FILE;
+	}
+
+	DIR *sub_d;
+	struct dirent *sub_dir;
+	// file 목록 가져오기 
+	for (bi = 0; bi < BACKUP_CNT; bi++)
+	{
+		sub_d = opendir(backup_dir[bi].name);
+		while ((sub_dir = readdir(sub_d)) != NULL)
+		{
+			if (!memcmp(sub_dir->d_name, ".", 1)) continue;	
+			sprintf(f_tmp, "%s/%s", tran_infolog, sub_dir->d_name);
+			memcpy(f_list[i].name, f_tmp, FILE_NAME_LEN);
+			printf("%s\n", f_list[i].name);
+		
+			f_list[i].backup_dir = bi + 1;
+			printf("%d\n", f_list[i].backup_dir);
+			i++;
+		}
+	}
+
+  return 1;
+}
+
+int check_backup_list(char* path)
+{
+	int i = 1;
+	int path_len = strlen(path);
+
+	for(i = 1; i < BACKUP_CNT + 1; i++)
+	{
+		if (!memcmp(path, backup_list[i-1], path_len))
+		{
+			return i;	
+		}
+	}
+	
+    return NOT_MATCH;
+}
+
